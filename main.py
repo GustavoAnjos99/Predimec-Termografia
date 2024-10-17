@@ -61,7 +61,7 @@ caminhoWord = os.path.join(PASTA_RESULTADOS, ARQUIVO_WORD)
 
 try:
     app = Dispatch("Excel.Application")
-    workbook_file_name = rf"{str(pathlib.Path().resolve())}\SEARA - FÁB_BRASÍLIA - RAT_202403946 (04-24).xlsm"
+    workbook_file_name = rf"{str(pathlib.Path().resolve())}\{ARQUIVO_EXCEL}"
     workbook = app.Workbooks.Open(Filename=workbook_file_name)
     pegarGraficosExcel(app, workbook_file_name, workbook)
 
