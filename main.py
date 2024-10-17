@@ -49,15 +49,18 @@ except:
     time.sleep(10)
     sys.exit(1)
 
-
+def return_ws():
+    return ws
 planilha = ws["Listagem"]
 WORD_criarTabelaListagem(planilha, documentoWord)
-WORD_criarTabelasOS(documentoWord, ws)
+WORD_criarTabelasOS(documentoWord)
 WORD_addValoresTabelaOS(ws, documentoWord)
 
+teste = f"{ARQUIVO_EXCEL}".split(".")
+ARQUIVO_WORD = f"{teste[0]}.docx"
 PASTA_RESULTADOS = "RELATÓRIOS FORMATADOS"
 os.makedirs(PASTA_RESULTADOS, exist_ok=True)
-caminhoWord = os.path.join(PASTA_RESULTADOS, ARQUIVO_WORD)     
+caminhoWord = os.path.join(PASTA_RESULTADOS, ARQUIVO_WORD)        
 
 try:
     app = Dispatch("Excel.Application")
@@ -68,6 +71,9 @@ try:
     for i in documentoWord.paragraphs:
         if i.text == "[grafico_status]":
             WORD_addGraficos(i, 2)
+            continue
+        elif i.text == "[grafico_tendencia]" and EXCEL_verificarTendencia(ws["Gráficos"]):
+            WORD_addGraficos(i, 4)
 except:
     print("ERRO: Erro ao inserir imagens dos gráficos do arquivo WORD.")
     time.sleep(10)

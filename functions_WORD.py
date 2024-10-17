@@ -7,14 +7,24 @@ from docx.text.paragraph import Paragraph
 from data_table import celulasTabelasOS
 from functions_EXCEL import *
 from docx.enum.text import WD_BREAK
+from openpyxl import load_workbook
+import os
 import pathlib
-from docx.shared import Pt
 from docx.shared import Inches
 
 corAceitavel = "#92D050"
 corAlerta = "#FFFF00"
 corCritico = "#FF0000"
 corNormal = "#0070C0"
+
+arquivos = os.listdir('./')
+for arquivo in arquivos:
+    if arquivo.endswith(".xlsm") or arquivo.endswith(".xlsx"):
+            ARQUIVO_EXCEL = arquivo
+g = open(ARQUIVO_EXCEL, 'rb')
+ws = load_workbook(g)
+
+planilhas_OS = EXCEL_retornarPlanilhasOS(ws)
 
 def WORD_deletarParagrafo(paragraph):
     p = paragraph._element
@@ -98,17 +108,16 @@ def WORD_addParagrafoDepois(paragraph, text=None, style=None):
         new_para.style = style
     return new_para
 
-def WORD_criarTabelasOS(documento, planilha):
+def WORD_criarTabelasOS(documento):
     for paragrafo in documento.paragraphs:
         if paragrafo.text == "[tabelasOS]":
-            for i in planilha.sheetnames:
-                if i != "Dados" and i !="Listagem" and i != "Gráficos" and i !="":
-                    table = documento.add_table(rows=42, cols=12)
-                    p = documento.add_paragraph()
-                    WORD_addParagrafoDepois(paragrafo, p.text)
-                    WORD_addTabelaParagrafo(table, paragrafo)
-                    table.style = 'Table Grid'
-                    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+            for i in planilhas_OS:
+                table = documento.add_table(rows=42, cols=12)
+                p = documento.add_paragraph()
+                WORD_addParagrafoDepois(paragrafo, p.text)
+                WORD_addTabelaParagrafo(table, paragrafo)
+                table.style = 'Table Grid'
+                table.alignment = WD_TABLE_ALIGNMENT.CENTER
             WORD_deletarParagrafo(paragrafo)
 
 def WORD_criarTabelaListagem(planilha, documento):
@@ -122,6 +131,8 @@ def WORD_criarTabelaListagem(planilha, documento):
             tableListagem.alignment = WD_TABLE_ALIGNMENT.CENTER
             linhas = 0
             for row in planilha.rows:
+                if EXCEL_pegarValorTabelaListagem(planilha, "A", linhas) == "None":
+                    break
                 celulaTBLword = tableListagem.add_row().cells
                 celulaTBLword[0].text = EXCEL_pegarValorTabelaListagem(planilha, "A", linhas) 
                 celulaTBLword[1].text = EXCEL_pegarValorTabelaListagem(planilha, "B", linhas)
@@ -148,14 +159,15 @@ def WORD_addValoresTabelaOS(planilha, documento):
     count = 0
     countTabelas = 2
     reset_celulasTabelasOS = celulasTabelasOS
-    planilhaOS = EXCEL_retornarPlanilhasOS(planilha)
+    if len(planilhas_OS) == 0:
+        return
     for table in documento.tables:
         if countTabelas != 0:
             countTabelas -= 1
             continue
-        if count == len(planilhaOS):
+        if count == len(planilhas_OS):
             break
-        valores = EXCEL_addValoresTabelasOS(planilhaOS[count], planilha)
+        valores = EXCEL_addValoresTabelasOS(planilhas_OS[count], planilha)
         for i in valores:
             reset_celulasTabelasOS[i][2] = str(valores[i])
         reset_celulasTabelasOS["Data-valor"][2] = WORD_arrumarData(reset_celulasTabelasOS["Data-valor"][2])
@@ -174,4 +186,4 @@ def WORD_addGraficos(paragrafo, nm):
     paragrafo.text = ''
     paragrafo.alignment = WD_ALIGN_PARAGRAPH.CENTER
     img = paragrafo.add_run()
-    img.add_picture(rf"{str(pathlib.Path().resolve())}\chart{nm}.png", width=Inches(4))
+    img.add_picture(rf"{str(pathlib.Path().resolve())}\chart{nm}.png", width=Inches(5))

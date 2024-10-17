@@ -17,3 +17,7 @@ def EXCEL_addValoresTabelasOS(planilhaOStext, ws):
 def EXCEL_pegarValorTabelaListagem(planilha, coluna, linha):
     textoCelula = str(planilha[f"{coluna}{linha+1}"].value) if planilha[f"{coluna}{linha+1}"].value != "None" else "" 
     return textoCelula
+
+def EXCEL_verificarTendencia(planilha):
+    if str(planilha["O47"].value) != "None":
+        return True
