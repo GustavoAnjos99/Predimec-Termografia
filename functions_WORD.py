@@ -24,7 +24,7 @@ for arquivo in arquivos:
 g = open(ARQUIVO_EXCEL, 'rb')
 ws = load_workbook(g)
 
-planilhas_OS = EXCEL_retornarPlanilhasOS(ws)
+planilhas_OS = EXCEL_organizarNumerosOS(ws["Listagem"])
 
 def WORD_deletarParagrafo(paragraph):
     p = paragraph._element
@@ -78,12 +78,17 @@ def WORD_formatarCelula(celula):
 def WORD_formatarCelulaEsquerda(celula):
     for paragraph in celula.paragraphs:
         for run in paragraph.runs:
-            run.font.bold = True
+            run.font.name = "Arial"
+
+def WORD_formatarCelulaConjunto(celula):
+    for paragraph in celula.paragraphs:
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in paragraph.runs:
             run.font.name = "Arial"
 
 def WORD_mesclarCelulas(table, cel1:list, cel2:list, texto, format):
         table.cell(cel1[0], cel1[1]).merge(table.cell(cel2[0], cel2[1]))
-        table.cell(cel1[0], cel1[1]).text = texto
+        table.cell(cel1[0], cel1[1]).text = str(texto)
         if format == 1:
             WORD_formatarCelula(table.cell(cel1[0], cel1[1]))
         elif format == 2:
@@ -109,6 +114,7 @@ def WORD_addParagrafoDepois(paragraph, text=None, style=None):
     return new_para
 
 def WORD_criarTabelasOS(documento):
+    print("⚙ -> Adicionando tabelas de OS no WORD...")
     for paragrafo in documento.paragraphs:
         if paragrafo.text == "[tabelasOS]":
             for i in planilhas_OS:
@@ -119,19 +125,21 @@ def WORD_criarTabelasOS(documento):
                 table.style = 'Table Grid'
                 table.alignment = WD_TABLE_ALIGNMENT.CENTER
             WORD_deletarParagrafo(paragrafo)
+    print("✔ -> Tabelas de OS adicionadas no WORD!")
 
 def WORD_criarTabelaListagem(planilha, documento):
+    print("⚙ -> Adicionando tabela de listagem no WORD...")
     for paragrafo in documento.paragraphs:
         if paragrafo.text == "[tabela_listagem]":
-            tableListagem = documento.add_table(rows=0, cols=6)
+            tableListagem = documento.add_table(rows=0, cols=7)
             WORD_addTabelaParagrafo(tableListagem, paragrafo)
             p = documento.add_paragraph()
-            WORD_addParagrafoDepois(paragrafo, p.text)
+            # WORD_addParagrafoDepois(paragrafo, p.text)
             tableListagem.style = 'Table Grid'
             tableListagem.alignment = WD_TABLE_ALIGNMENT.CENTER
             linhas = 0
             for row in planilha.rows:
-                if EXCEL_pegarValorTabelaListagem(planilha, "A", linhas) == "None":
+                if EXCEL_pegarValorTabelaListagem(planilha, "A", linhas) == "":
                     break
                 celulaTBLword = tableListagem.add_row().cells
                 celulaTBLword[0].text = EXCEL_pegarValorTabelaListagem(planilha, "A", linhas) 
@@ -140,6 +148,7 @@ def WORD_criarTabelaListagem(planilha, documento):
                 celulaTBLword[3].text = EXCEL_pegarValorTabelaListagem(planilha, "D", linhas)
                 celulaTBLword[4].text = EXCEL_pegarValorTabelaListagem(planilha, "E", linhas)
                 celulaTBLword[5].text = EXCEL_pegarValorTabelaListagem(planilha, "F", linhas)
+                celulaTBLword[6].text = EXCEL_pegarValorTabelaListagem(planilha, "G", linhas)
                 WORD_formatarCabecalho(celulaTBLword[0])
                 WORD_formatarCabecalho(celulaTBLword[1])
                 if linhas == 0:
@@ -147,43 +156,51 @@ def WORD_criarTabelaListagem(planilha, documento):
                     WORD_formatarCabecalho(celulaTBLword[3])
                     WORD_formatarCabecalho(celulaTBLword[4])
                     WORD_formatarCabecalho(celulaTBLword[5])
+                    WORD_formatarCabecalho(celulaTBLword[6])
                 if linhas != 0:
                     WORD_formatarCelulaEsquerda(celulaTBLword[2])
-                    WORD_formatarCelula(celulaTBLword[3])
+                    WORD_formatarCelulaConjunto(celulaTBLword[3])
                     WORD_formatarCelula(celulaTBLword[4])
                     WORD_formatarCelula(celulaTBLword[5])
+                    WORD_formatarCelula(celulaTBLword[6])
                 linhas += 1
             paragrafo.clear()
+    print("✔ -> Tabela de listagem adicionado no arquivo WORD!")
 
-def WORD_addValoresTabelaOS(planilha, documento):
+def WORD_addValoresTabelaOS(planilha, documento, data):
+    print("\n⚙ -> Adicionando valores nas tabelas de OS no WORD...")
     count = 0
     countTabelas = 2
-    reset_celulasTabelasOS = celulasTabelasOS
     if len(planilhas_OS) == 0:
         return
     for table in documento.tables:
         if countTabelas != 0:
             countTabelas -= 1
             continue
+        print(f"🛠 -> Adicionando valor na tabela {count+1}")
         if count == len(planilhas_OS):
             break
-        valores = EXCEL_addValoresTabelasOS(planilhas_OS[count], planilha)
-        for i in valores:
-            reset_celulasTabelasOS[i][2] = str(valores[i])
-        reset_celulasTabelasOS["Data-valor"][2] = WORD_arrumarData(reset_celulasTabelasOS["Data-valor"][2])
         for item in celulasTabelasOS:
-            WORD_mesclarCelulas(table, celulasTabelasOS[item][0], celulasTabelasOS[item][1], celulasTabelasOS[item][2], celulasTabelasOS[item][3])
-        reset_celulasTabelasOS = celulasTabelasOS
+            if item == "OS-valor":
+                WORD_mesclarCelulas(table, celulasTabelasOS[item][0], celulasTabelasOS[item][1], f"0{count+1}" if count < 10 else count+1, celulasTabelasOS[item][3])
+            elif item == "Data-valor":
+                WORD_mesclarCelulas(table, celulasTabelasOS[item][0], celulasTabelasOS[item][1], data, celulasTabelasOS[item][3])
+            elif item == "Status-valor":
+                WORD_mesclarCelulas(table, celulasTabelasOS[item][0], celulasTabelasOS[item][1], planilhas_OS[count][1][0], celulasTabelasOS[item][3])
+            elif item == "Area-valor":
+                WORD_mesclarCelulas(table, celulasTabelasOS[item][0], celulasTabelasOS[item][1], planilhas_OS[count][1][1], celulasTabelasOS[item][3])
+            elif item == "Tag-valor":
+                WORD_mesclarCelulas(table, celulasTabelasOS[item][0], celulasTabelasOS[item][1], planilhas_OS[count][1][2], celulasTabelasOS[item][3])
+            elif item == "Equipamento-valor":
+                WORD_mesclarCelulas(table, celulasTabelasOS[item][0], celulasTabelasOS[item][1], planilhas_OS[count][1][3], celulasTabelasOS[item][3])
+            else:
+                WORD_mesclarCelulas(table, celulasTabelasOS[item][0], celulasTabelasOS[item][1], celulasTabelasOS[item][2], celulasTabelasOS[item][3])
         count += 1
-
-def WORD_arrumarData(data_str : str):
-    dataSplit = data_str.split(" ")
-    data = dataSplit[0].split("-")
-    datacorreta = f"{data[2]}/{data[1]}/{data[0]}"
-    return datacorreta
+    print("✔ -> Valores adicionados nas tabelas de OS!")
 
 def WORD_addGraficos(paragrafo, nm):
     paragrafo.text = ''
     paragrafo.alignment = WD_ALIGN_PARAGRAPH.CENTER
     img = paragrafo.add_run()
     img.add_picture(rf"{str(pathlib.Path().resolve())}\chart{nm}.png", width=Inches(5))
+    print("✔ -> Gráficos adicionados no arquivo WORD!")
